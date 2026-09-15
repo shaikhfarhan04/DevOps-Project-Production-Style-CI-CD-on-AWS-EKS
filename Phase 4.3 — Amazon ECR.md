@@ -314,3 +314,71 @@ docker images
 
 I'll identify the correct image and then we'll tag it with the ECR repository URL before logging in and pushing.
 
+Excellent. ✅ Everything is correct so far.
+
+You now have:
+
+```text
+Local image
+devops-app:1.0.0
+        │
+        ▼
+ECR-tagged image
+194154437225.dkr.ecr.ap-south-1.amazonaws.com/devops-production-dev-app:1.0.0
+        │
+        ▼
+Docker authenticated with ECR
+Login Succeeded
+```
+
+## Step 2.3 — Push the image to ECR
+
+Now run:
+
+```powershell
+docker push 194154437225.dkr.ecr.ap-south-1.amazonaws.com/devops-production-dev-app:1.0.0
+```
+
+You should see Docker uploading several layers and eventually something similar to:
+
+```text
+1.0.0: digest: sha256:... size: ...
+```
+
+### Step 2.4 — Verify from AWS CLI
+
+After the push completes, run:
+
+```powershell
+aws ecr describe-images `
+  --repository-name devops-production-dev-app `
+  --region ap-south-1
+```
+
+You should see an image with:
+
+```text
+imageTags
+---------
+1.0.0
+```
+
+and an image digest.
+
+### Checkpoint
+
+Run **both commands**:
+
+```powershell
+docker push 194154437225.dkr.ecr.ap-south-1.amazonaws.com/devops-production-dev-app:1.0.0
+```
+
+then:
+
+```powershell
+aws ecr describe-images `
+  --repository-name devops-production-dev-app `
+  --region ap-south-1
+```
+
+Send me the output. Once we confirm the image exists in ECR, we'll close **Phase 4.3** and move into **Phase 4.4 — Amazon EKS cluster infrastructure**. 🚀
