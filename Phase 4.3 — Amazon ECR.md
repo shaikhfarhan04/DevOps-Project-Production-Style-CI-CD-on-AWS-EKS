@@ -255,3 +255,62 @@ Once we confirm the ECR plan is clean, we'll do:
 **Phase 4.3.1 — Create ECR → Push your existing Docker image → Verify it in AWS.**
 
 That will be the first point where the Docker application from our earlier phases actually enters AWS. 🚀
+
+
+Excellent. ✅ ECR is created and the repository URL is correct.
+
+## Phase 4.3.1 — Step 2: Authenticate Docker with ECR
+
+We'll do this in **PowerShell**.
+
+### 2.1 Go back to the project root
+
+You're currently inside `terraform`.
+
+Run:
+
+```powershell
+cd ..
+```
+
+Verify:
+
+```powershell
+Get-Location
+```
+
+You should be at:
+
+```text
+G:\DevOps-Data\DevOps Project\DevOps-Project-Production-Style-CI-CD-on-AWS-EKS
+```
+
+---
+
+### 2.2 Confirm your existing Docker image
+
+Run:
+
+```powershell
+docker images
+```
+
+We need to identify the image you built during Phase 2.
+
+You should see something similar to:
+
+```text
+REPOSITORY              TAG       IMAGE ID       CREATED
+devops-app              latest    xxxxxxxxxxxx   ...
+```
+
+**Don't push anything yet.**
+
+Send me the output of:
+
+```powershell
+docker images
+```
+
+I'll identify the correct image and then we'll tag it with the ECR repository URL before logging in and pushing.
+
