@@ -54,3 +54,73 @@ kubectl apply -f k8s/service.yaml
 Then we'll watch the Pods and LoadBalancer come up.
 
 **Run the three server-side dry-run commands above and send me the output.**
+
+
+Exactly — and this confirms the issue. **The namespace does not exist yet.** The previous server dry-run of `namespace.yaml` did not persist it.
+
+So let's stop dry-running and create the namespace first. This is the correct dependency order.
+
+### Step 1 — Create the namespace
+
+Run:
+
+```powershell
+kubectl apply -f k8s/namespace.yaml
+```
+
+Expected:
+
+```text
+namespace/devops-app created
+```
+
+### Step 2 — Verify it
+
+```powershell
+kubectl get namespace devops-app
+```
+
+Expected:
+
+```text
+NAME         STATUS   AGE
+devops-app   Active   ...
+```
+
+### Step 3 — Now server-validate the Deployment
+
+```powershell
+kubectl apply --dry-run=server -f k8s/deployment.yaml
+```
+
+Expected:
+
+```text
+deployment.apps/devops-app created (server dry run)
+```
+
+### Step 4 — Server-validate the Service
+
+```powershell
+kubectl apply --dry-run=server -f k8s/service.yaml
+```
+
+Expected:
+
+```text
+service/devops-app created (server dry run)
+```
+
+Notice that **Step 1 is a real apply**, while Steps 3–4 are still dry runs.
+
+Once those pass, we'll do the real Deployment and Service:
+
+```powershell
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+Then we'll verify the Pods and AWS Load Balancer.
+
+Send me the output from **Steps 1–4**.
+
