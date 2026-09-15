@@ -204,6 +204,52 @@ terraform plan
 
 Send me the final plan summary.
 
+Perfect. ✅ Your Terraform plan is exactly what we expected:
+
+* **1 resource to create**
+* ECR repository: `devops-production-dev-app`
+* Region: `ap-south-1`
+* Immutable image tags
+* Scan on push enabled
+* AES256 encryption
+* **0 changes / 0 destroys**
+
+Let's continue with **Phase 4.3.1 — Create ECR → Push Docker Image → Verify**.
+
+### Step 1 — Create the ECR repository
+
+You are already inside the `terraform` directory.
+
+Run:
+
+```powershell
+terraform apply -auto-approve
+```
+
+You should eventually see:
+
+```text
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+
+Then run:
+
+```powershell
+terraform output
+```
+
+You should get something similar to:
+
+```text
+ecr_repository_name = "devops-production-dev-app"
+ecr_repository_url = "194154437225.dkr.ecr.ap-south-1.amazonaws.com/devops-production-dev-app"
+```
+
+**Send me the output of `terraform output`.**
+
+Then we'll move to **Step 2 — authenticate Docker with ECR and push your existing image**.
+
+
 Once we confirm the ECR plan is clean, we'll do:
 
 **Phase 4.3.1 — Create ECR → Push your existing Docker image → Verify it in AWS.**
