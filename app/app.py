@@ -19,7 +19,7 @@ def health():
 def version():
     return jsonify({
         "application": "DevOps Demo Application",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "environment": "development"
     })
 
