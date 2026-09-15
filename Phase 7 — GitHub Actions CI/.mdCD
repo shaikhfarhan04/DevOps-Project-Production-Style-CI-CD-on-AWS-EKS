@@ -1,0 +1,256 @@
+Yes. We can move ahead. 👍
+
+The important point is that **Phase 6 isn't fully clean yet**: the `1.0.1` rollout is still stuck in `ContainerCreating`. We won't ignore that permanently, but we can park it and return to it during the deployment-hardening/CI-CD phase.
+
+More importantly, we should **not build the next phase on the temporary `Recreate` strategy** as our final configuration. We'll eventually restore `RollingUpdate` and fix the underlying capacity/startup issue.
+
+# Phase 7 — GitHub Actions CI/CD
+
+Now we're moving from:
+
+```text
+Developer
+   ↓
+Git
+   ↓
+Docker
+   ↓
+ECR
+   ↓
+kubectl
+   ↓
+EKS
+```
+
+to an automated pipeline:
+
+```text
+GitHub push
+     ↓
+GitHub Actions
+     ↓
+Run tests
+     ↓
+Build Docker image
+     ↓
+Trivy security scan
+     ↓
+Push image → ECR
+     ↓
+Deploy → EKS
+     ↓
+Verify rollout
+```
+
+This is the major transition from **manually operated infrastructure** to **CI/CD**.
+
+---
+
+## Step 1 — Create GitHub Actions directory
+
+From the project root:
+
+```powershell
+mkdir .github\workflows
+```
+
+Verify:
+
+```powershell
+Get-ChildItem .github\workflows
+```
+
+It should currently be empty.
+
+---
+
+## Step 2 — Create the CI workflow
+
+Create:
+
+```text
+.github/workflows/ci.yml
+```
+
+Put this in it:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+
+      - name: Run tests
+        run: |
+          pytest
+```
+
+This is intentionally **CI only** for now.
+
+We want to prove:
+
+```text
+GitHub → GitHub Actions → Python environment → pytest
+```
+
+before introducing AWS credentials and deployment automation.
+
+---
+
+## Step 3 — Check the workflow locally
+
+Run:
+
+```powershell
+git status
+```
+
+You should see something like:
+
+```text
+modified:   app/app.py
+modified:   app/templates/index.html
+modified:   k8s/deployment.yaml
+untracked:  .github/
+```
+
+That's expected.
+
+Then run the tests locally one more time:
+
+```powershell
+pytest
+```
+
+We want:
+
+```text
+3 passed
+```
+
+---
+
+## Step 4 — Commit the CI workflow
+
+```powershell
+git add .github/workflows/ci.yml
+```
+
+Then:
+
+```powershell
+git commit -m "Add GitHub Actions CI pipeline"
+```
+
+Then:
+
+```powershell
+git push origin main
+```
+
+---
+
+## Step 5 — Watch GitHub Actions
+
+Open your GitHub repository and go to:
+
+**Actions**
+
+You should see:
+
+```text
+CI
+└── Run Tests
+      ├── Checkout repository
+      ├── Set up Python
+      ├── Install dependencies
+      └── Run tests
+```
+
+The workflow should finish with a green check.
+
+---
+
+### Important
+
+For this first CI workflow, **do not configure AWS credentials or GitHub secrets yet**.
+
+We're deliberately building this incrementally:
+
+**Phase 7A**
+
+```text
+GitHub → Actions → pytest
+```
+
+Then we'll add:
+
+**Phase 7B**
+
+```text
+GitHub → Actions
+          ↓
+       Docker build
+          ↓
+       Trivy scan
+```
+
+Then:
+
+**Phase 7C**
+
+```text
+GitHub Actions
+      ↓
+     ECR
+```
+
+Then:
+
+**Phase 7D**
+
+```text
+GitHub Actions
+      ↓
+     ECR
+      ↓
+     EKS
+```
+
+That separation makes troubleshooting much easier and mirrors how a real production pipeline is developed.
+
+### Your checkpoint
+
+Execute only through:
+
+```powershell
+git push origin main
+```
+
+Then send me the GitHub Actions result/output.
+
+Once the **CI workflow is green**, we'll add the Docker build and **Trivy vulnerability scanning**.
