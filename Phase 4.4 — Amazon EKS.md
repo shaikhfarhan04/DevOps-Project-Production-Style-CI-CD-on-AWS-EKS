@@ -537,6 +537,97 @@ terraform apply -auto-approve
 
 Send me the final Terraform output after it completes. Then we'll verify the EKS cluster status before moving to **Phase 4.4.3 — EKS Managed Node Group**.
 
+Excellent — **EKS control plane creation succeeded**. 🎉
+
+Your cluster is now:
+
+* **Cluster:** `devops-production-dev-eks`
+* **Region:** `ap-south-1`
+* **VPC:** `vpc-09d3de368ec1f7895`
+* **Private subnets:** 2
+* **EKS API:** created successfully
+* **Terraform:** `1 added, 0 changed, 0 destroyed`
+* Creation time: **8m 13s**
+
+## Phase 4.4.3 — Connect `kubectl` to EKS
+
+Before creating worker nodes, let's verify that your local `kubectl` can authenticate with the new cluster.
+
+### Step 1 — Update kubeconfig
+
+Run this from your `terraform` directory:
+
+```powershell
+aws eks update-kubeconfig `
+  --region ap-south-1 `
+  --name devops-production-dev-eks
+```
+
+You should get something similar to:
+
+```text
+Added new context arn:aws:eks:ap-south-1:...:cluster/devops-production-dev-eks to ...
+```
+
+### Step 2 — Verify the cluster context
+
+```powershell
+kubectl config current-context
+```
+
+Expected to contain:
+
+```text
+arn:aws:eks:ap-south-1:...:cluster/devops-production-dev-eks
+```
+
+### Step 3 — Query the cluster
+
+Run:
+
+```powershell
+kubectl get nodes
+```
+
+At this point, **`No resources found` is expected**, because we haven't created the worker node group yet.
+
+Then run:
+
+```powershell
+kubectl get namespaces
+```
+
+You should see namespaces such as:
+
+```text
+default
+kube-node-lease
+kube-public
+kube-system
+```
+
+### Step 4 — Verify EKS directly
+
+```powershell
+aws eks describe-cluster `
+  --region ap-south-1 `
+  --name devops-production-dev-eks `
+  --query "cluster.status"
+```
+
+Expected:
+
+```text
+"ACTIVE"
+```
+
+---
+
+**Stop here and send me the output of these four commands.**
+
+Once the control plane connectivity is confirmed, we'll move to **Phase 4.4.4 — EKS Managed Node Group**, where we'll create the EC2 worker nodes that actually run your Docker/Kubernetes workloads.
+
+
 
 ```text
 Plan: X to add, X to change, X to destroy.
