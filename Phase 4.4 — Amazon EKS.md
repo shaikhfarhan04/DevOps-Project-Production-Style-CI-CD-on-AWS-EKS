@@ -779,3 +779,174 @@ Don't apply yet.
 
 **Send me the output of `terraform validate` and `terraform plan`.** We'll inspect the plan together before creating the worker nodes.
 
+Yes — **`t3.micro` is a reasonable choice for your AWS Free Tier learning environment**, especially since your goal right now is to keep costs down.
+
+One important observation from your plan: the actual Terraform configuration is using **`t3.micro`**, not `t3.medium`:
+
+```text
+instance_types = [
+  "t3.micro",
+]
+```
+
+So your plan is consistent with your intention.
+
+### Your node group plan looks good
+
+```text
+Node group:       devops-production-dev-nodes
+Instance type:    t3.micro
+Capacity:         ON_DEMAND
+Desired nodes:    2
+Minimum:          1
+Maximum:          3
+Subnets:          Private
+Plan:             1 to add, 0 to change, 0 to destroy
+```
+
+There is **nothing in this plan that needs changing before we proceed**.
+
+One caveat: don't assume that every AWS resource in this project is free just because the EC2 instance is small. **EKS itself, the NAT Gateway, public IPv4 addresses, and other resources can incur charges.** We'll keep the architecture deliberately small and later I'll show you how to tear everything down cleanly when you're finished.
+
+## Proceed with the node group
+
+Run:
+
+```powershell
+terraform apply -auto-approve
+```
+
+This will probably take several minutes because AWS has to provision the managed node group and register the EC2 instances with EKS.
+
+When it finishes, run:
+
+```powershell
+kubectl get nodes -o wide
+```
+
+Then:
+
+```powershell
+aws eks describe-nodegroup `
+  --region ap-south-1 `
+  --cluster-name devops-production-dev-eks `
+  --nodegroup-name devops-production-dev-nodes `
+  --query "nodegroup.status"
+```
+
+Expected:
+
+```text
+"ACTIVE"
+```
+
+And `kubectl get nodes -o wide` should eventually show **2 nodes** in `Ready` state.
+
+**Don't change the desired count yet.** Let's get the two `t3.micro` workers registered and verify them first.
+
+Excellent. ✅ **EKS worker layer is fully operational.**
+
+You now have the core AWS infrastructure running:
+
+```text
+                    AWS
+                     │
+              ┌──────▼──────┐
+              │ EKS Control │
+              │    Plane    │
+              └──────┬──────┘
+                     │
+          ┌──────────▼──────────┐
+          │ Managed Node Group  │
+          │  2 × t3.micro      │
+          │  Private Subnets   │
+          └───────┬───────┬─────┘
+                  │       │
+             Node 1      Node 2
+             Ready       Ready
+```
+
+Your verification is exactly what we wanted:
+
+* Node group: `ACTIVE`
+* Desired nodes: **2**
+* Both nodes: **Ready**
+* Kubernetes version: `v1.36.3`
+* OS: Amazon Linux 2023
+* Runtime: containerd
+* Nodes are in the **private subnets**
+* Nodes have no public IPs — good architecture
+
+## Phase 4.4.4 — Complete
+
+Before we deploy the application, let's do one small but important Kubernetes health check.
+
+Run:
+
+```powershell
+kubectl get pods -A
+```
+
+Then:
+
+```powershell
+kubectl get nodes
+```
+
+And:
+
+```powershell
+kubectl describe nodes | Select-String "Name:|Ready|Taints:"
+```
+
+We're checking that the EKS system components are healthy and that Kubernetes sees both worker nodes correctly.
+
+### Then we're ready for the next major phase
+
+Once these checks look good, we'll move into:
+
+**Phase 5 — Kubernetes Application Deployment**
+
+We'll create:
+
+```text
+k8s/
+├── namespace.yaml
+├── deployment.yaml
+├── service.yaml
+└── ...
+```
+
+and deploy the **same Flask image that is already sitting in ECR**:
+
+```text
+ECR
+  │
+  ▼
+devops-production-dev-app:1.0.0
+  │
+  ▼
+EKS
+  │
+  ├── Pod
+  └── Pod
+       │
+       ▼
+     Flask
+```
+
+We'll first deploy it manually with Kubernetes so you understand exactly what is happening. **After that we'll automate the same process with GitHub Actions**, which will become the CI/CD portion of the project.
+
+Send me the output of `kubectl get pods -A` first; that's the most important check.
+Perfect. ✅ Your EKS cluster is healthy end-to-end.
+
+All checks passed:
+
+2/2 worker nodes: Ready
+CoreDNS: both pods Running
+AWS VPC CNI: both aws-node pods 2/2 Running
+kube-proxy: both pods Running
+Node taints: none
+Restarts: 0
+
+That means the Kubernetes control plane, networking, DNS, and worker nodes are all functioning correctly.
