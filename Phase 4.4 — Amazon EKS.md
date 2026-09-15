@@ -448,6 +448,96 @@ terraform plan
 
 Send me the final:
 
+Excellent — the uploaded log confirms everything is clean. 
+
+### Phase 4.4.1 — IAM: ✅ COMPLETE
+
+Your IAM resources were successfully created:
+
+* EKS cluster role
+* EKS node role
+* `AmazonEKSClusterPolicy`
+* `AmazonEKSWorkerNodePolicy`
+* `AmazonEKS_CNI_Policy`
+* `AmazonEC2ContainerRegistryReadOnly`
+
+Terraform reported:
+
+```text
+Apply complete! Resources: 6 added, 0 changed, 0 destroyed.
+```
+
+
+
+### Phase 4.4.2 — EKS Cluster: Plan ✅ READY
+
+Your current plan is exactly what we want:
+
+```text
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+The cluster will be:
+
+```text
+Name:   devops-production-dev-eks
+Region: ap-south-1
+VPC:    vpc-09d3de368ec1f7895
+Subnets:
+  subnet-0758b04d047bbc266
+  subnet-0a2e01141a6f3e048
+```
+
+And both API endpoint modes are enabled:
+
+```text
+endpoint_private_access = true
+endpoint_public_access  = true
+```
+
+
+
+## 🚀 Create the EKS control plane
+
+We're now at the point where we can actually create the cluster.
+
+Run:
+
+```powershell
+terraform apply -auto-approve
+```
+
+**Expect this to take several minutes.** EKS cluster creation is considerably slower than creating the IAM roles or ECR repository, so don't interrupt Terraform while AWS is provisioning it.
+
+At the end, we want:
+
+```text
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+
+Then run:
+
+```powershell
+terraform output eks_cluster_name
+```
+
+and:
+
+```powershell
+terraform output eks_cluster_endpoint
+```
+
+### ⛔ Checkpoint
+
+For now, run only:
+
+```powershell
+terraform apply -auto-approve
+```
+
+Send me the final Terraform output after it completes. Then we'll verify the EKS cluster status before moving to **Phase 4.4.3 — EKS Managed Node Group**.
+
+
 ```text
 Plan: X to add, X to change, X to destroy.
 ```
