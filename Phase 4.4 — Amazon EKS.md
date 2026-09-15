@@ -634,3 +634,148 @@ Plan: X to add, X to change, X to destroy.
 ```
 
 Once that is clean, we'll create the EKS control plane.
+
+
+Perfect. ✅ **EKS connectivity is fully verified.**
+
+All four checks passed:
+
+* `kubectl` context points to `devops-production-dev-eks`
+* Kubernetes API is reachable
+* `kubectl get namespaces` works
+* EKS status is `ACTIVE`
+* `kubectl get nodes` returns no nodes — **expected**, because we haven't created the worker node group yet.
+
+## Phase 4.4.4 — EKS Managed Node Group
+
+Now we'll create the compute layer that actually runs your application.
+
+Architecture becomes:
+
+```text
+                    AWS
+                     │
+              ┌──────▼──────┐
+              │ EKS Control │
+              │    Plane    │
+              └──────┬──────┘
+                     │
+             ┌───────▼────────┐
+             │ Managed Node    │
+             │     Group      │
+             ├────────────────┤
+             │ EC2 worker     │
+             │ EC2 worker     │
+             └────────────────┘
+                     │
+                     ▼
+              Kubernetes Pods
+```
+
+We'll use **private subnets** for the worker nodes, which is the right direction for the production-style architecture we're building.
+
+### 1. Create `terraform/node-group.tf`
+
+Inside your `terraform` directory, create:
+
+```hcl id="n8q3pm"
+resource "aws_eks_node_group" "main" {
+  cluster_name = aws_eks_cluster.main.name
+
+  node_group_name = "${var.project_name}-${var.environment}-nodes"
+
+  node_role_arn = aws_iam_role.eks_node.arn
+
+  subnet_ids = module.vpc.private_subnets
+
+  instance_types = ["t3.medium"]
+
+  capacity_type = "ON_DEMAND"
+
+  scaling_config {
+    desired_size = 2
+    min_size     = 1
+    max_size     = 3
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+
+  labels = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker_node,
+    aws_iam_role_policy_attachment.eks_cni,
+    aws_iam_role_policy_attachment.eks_ecr_read_only
+  ]
+}
+```
+
+### 2. Add the node-group output
+
+At the bottom of `outputs.tf`, add:
+
+```hcl id="x6r2ka"
+output "eks_node_group_name" {
+  description = "EKS managed node group name"
+  value       = aws_eks_node_group.main.node_group_name
+}
+```
+
+### Why these settings?
+
+| Setting  | Value           | Reason                          |
+| -------- | --------------- | ------------------------------- |
+| Instance | `t3.medium`     | Good learning/lab baseline      |
+| Capacity | `ON_DEMAND`     | Predictable for this project    |
+| Desired  | `2`             | Demonstrates multiple workers   |
+| Minimum  | `1`             | Allows scaling down             |
+| Maximum  | `3`             | Keeps the lab bounded           |
+| Subnets  | Private         | Workers aren't directly exposed |
+| Update   | `1 unavailable` | Safer rolling updates           |
+
+**Important:** `t3.medium` incurs AWS charges while running. We're deliberately using only 1–2 nodes for this learning environment rather than building an unnecessarily large cluster.
+
+### 3. Format and validate
+
+Run:
+
+```powershell
+terraform fmt
+terraform validate
+```
+
+Expected:
+
+```text
+Success! The configuration is valid.
+```
+
+### 4. Preview the infrastructure change
+
+Then:
+
+```powershell
+terraform plan
+```
+
+We expect approximately:
+
+```text
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+Don't apply yet.
+
+**Send me the output of `terraform validate` and `terraform plan`.** We'll inspect the plan together before creating the worker nodes.
+
