@@ -122,7 +122,7 @@ resource "aws_iam_role" "github_actions_ecr" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:shaikhfarhan04/DevOps-Project-Production-Style-CI-CD-on-AWS-EKS:ref:refs/heads/main"
+            "token.actions.githubusercontent.com:sub" = "repo:shaikhfarhan04@284509141/DevOps-Project-Production-Style-CI-CD-on-AWS-EKS@1371660433"
           }
         }
       }
